@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres
+    container_name: ecom-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ecom
+    ports:
+    # Change the host port to 5433 to avoid conflicts with any local PostgreSQL instances
+      - "5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:
