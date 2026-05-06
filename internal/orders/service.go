@@ -58,6 +58,14 @@ func (s *svc) PlaceOrder(ctx context.Context, tempOrder createOrderParams) (repo
 			return repository.Order{}, ErrInsufficientStock
 		}
 
+		err = qtx.DecrementProductQuantity(ctx, repository.DecrementProductQuantityParams{
+			ID:       item.ProductId,
+			Quantity: item.Quantity,
+		})
+		if err != nil {
+			return repository.Order{}, fmt.Errorf("failed to decrement stock: %w", err)
+		}
+
 		_, err = qtx.CreateOrderItem(ctx, repository.CreateOrderItemParams{
 			OrderID:    order.ID,
 			ProductID:  item.ProductId,
