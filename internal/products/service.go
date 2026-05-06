@@ -8,6 +8,9 @@ import (
 
 type Service interface {
 	ListProducts(ctx context.Context) ([]repository.Product, error)
+	CreateProduct(ctx context.Context, params repository.CreateProductParams) (repository.Product, error)
+	UpdateProduct(ctx context.Context, params repository.UpdateProductParams) (repository.Product, error)
+	DeleteProduct(ctx context.Context, id int64) error
 }
 
 type svc struct {
@@ -22,4 +25,16 @@ func NewService(repo repository.Querier) Service {
 
 func (s *svc) ListProducts(ctx context.Context) ([]repository.Product, error) {
 	return s.repo.ListProducts(ctx)
+}
+
+func (s *svc) CreateProduct(ctx context.Context, params repository.CreateProductParams) (repository.Product, error) {
+	return s.repo.CreateProduct(ctx, params)
+}
+
+func (s *svc) UpdateProduct(ctx context.Context, params repository.UpdateProductParams) (repository.Product, error) {
+	return s.repo.UpdateProduct(ctx, params)
+}
+
+func (s *svc) DeleteProduct(ctx context.Context, id int64) error {
+	return s.repo.DeleteProduct(ctx, id)
 }

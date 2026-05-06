@@ -31,6 +31,9 @@ func (app *application) mount() http.Handler {
 	productService := products.NewService(repository.New(app.db))
 	productHandler := products.NewHandler(productService)
 	r.Get("/products", productHandler.ListProducts)
+	r.Post("/products", productHandler.CreateProduct)
+	r.Put("/products/{id}", productHandler.UpdateProduct)
+	r.Delete("/products/{id}", productHandler.DeleteProduct)
 
 	orderService := orders.NewService(repository.New(app.db), app.db)
 	orderHandler := orders.NewHandler(orderService)

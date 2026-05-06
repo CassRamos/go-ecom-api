@@ -3,8 +3,11 @@ package products
 import (
 	"log"
 	"net/http"
+	"strconv"
 
+	repository "github.com/CassRamos/go-ecom-api.git/internal/adapters/postgresql/sqlc"
 	"github.com/CassRamos/go-ecom-api.git/internal/json"
+	"github.com/go-chi/chi"
 )
 
 type handler struct {
@@ -26,4 +29,69 @@ func (h *handler) ListProducts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.Write(w, http.StatusOK, products)
+}
+
+func (h *handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
+	var params repository.CreateProductParams
+
+	if err := json.Read(r, &params); err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	product, err := h.service.CreateProduct(r.Context(), params)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.Write(w, http.StatusCreated, product)
+}
+
+func (h *handler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid product id", http.StatusBadRequest)
+		return
+	}
+
+	var params repository.UpdateProductParams
+	if err := json.Read(r, &params); err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	params.ID = id
+
+	product, err := h.service.UpdateProduct(r.Context(), params)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.Write(w, http.StatusOK, product)
+}
+
+func (h *handler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid product id", http.StatusBadRequest)
+		return
+	}
+
+	err = h.service.DeleteProduct(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+
 }

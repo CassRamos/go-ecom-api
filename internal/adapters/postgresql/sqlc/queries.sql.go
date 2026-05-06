@@ -7,12 +7,13 @@ package repository
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createOrder = `-- name: CreateOrder :one
-INSERT INTO orders (
-  customer_id
-) VALUES ($1) RETURNING id, customer_id, created_at
+INSERT INTO orders (customer_id) 
+VALUES ($1) RETURNING id, customer_id, created_at
 `
 
 func (q *Queries) CreateOrder(ctx context.Context, customerID int64) (Order, error) {
@@ -50,6 +51,62 @@ func (q *Queries) CreateOrderItem(ctx context.Context, arg CreateOrderItemParams
 		&i.PriceCents,
 	)
 	return i, err
+}
+
+const createProduct = `-- name: CreateProduct :one
+INSERT INTO products(name, description, price_in_cents, quantity) 
+VALUES ($1, $2, $3, $4) RETURNING id, name, description, price_in_cents, quantity, created_at
+`
+
+type CreateProductParams struct {
+	Name         string      `json:"name"`
+	Description  pgtype.Text `json:"description"`
+	PriceInCents int32       `json:"price_in_cents"`
+	Quantity     int32       `json:"quantity"`
+}
+
+func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error) {
+	row := q.db.QueryRow(ctx, createProduct,
+		arg.Name,
+		arg.Description,
+		arg.PriceInCents,
+		arg.Quantity,
+	)
+	var i Product
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.PriceInCents,
+		&i.Quantity,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const decrementProductQuantity = `-- name: DecrementProductQuantity :exec
+UPDATE products
+SET quantity = quantity - $2
+WHERE id = $1
+`
+
+type DecrementProductQuantityParams struct {
+	ID       int64 `json:"id"`
+	Quantity int32 `json:"quantity"`
+}
+
+func (q *Queries) DecrementProductQuantity(ctx context.Context, arg DecrementProductQuantityParams) error {
+	_, err := q.db.Exec(ctx, decrementProductQuantity, arg.ID, arg.Quantity)
+	return err
+}
+
+const deleteProduct = `-- name: DeleteProduct :exec
+DELETE FROM products WHERE id = $1
+`
+
+func (q *Queries) DeleteProduct(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, deleteProduct, id)
+	return err
 }
 
 const getProductByID = `-- name: GetProductByID :one
@@ -99,4 +156,38 @@ func (q *Queries) ListProducts(ctx context.Context) ([]Product, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateProduct = `-- name: UpdateProduct :one
+UPDATE products
+SET name = $2, description = $3, price_in_cents = $4, quantity = $5
+WHERE id = $1 RETURNING id, name, description, price_in_cents, quantity, created_at
+`
+
+type UpdateProductParams struct {
+	ID           int64       `json:"id"`
+	Name         string      `json:"name"`
+	Description  pgtype.Text `json:"description"`
+	PriceInCents int32       `json:"price_in_cents"`
+	Quantity     int32       `json:"quantity"`
+}
+
+func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error) {
+	row := q.db.QueryRow(ctx, updateProduct,
+		arg.ID,
+		arg.Name,
+		arg.Description,
+		arg.PriceInCents,
+		arg.Quantity,
+	)
+	var i Product
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.PriceInCents,
+		&i.Quantity,
+		&i.CreatedAt,
+	)
+	return i, err
 }
