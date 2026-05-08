@@ -109,6 +109,47 @@ func (q *Queries) DeleteProduct(ctx context.Context, id int64) error {
 	return err
 }
 
+const getOrderById = `-- name: GetOrderById :one
+SELECT id, customer_id, created_at FROM orders WHERE id = $1
+`
+
+func (q *Queries) GetOrderById(ctx context.Context, id int64) (Order, error) {
+	row := q.db.QueryRow(ctx, getOrderById, id)
+	var i Order
+	err := row.Scan(&i.ID, &i.CustomerID, &i.CreatedAt)
+	return i, err
+}
+
+const getOrderItemsByOrderId = `-- name: GetOrderItemsByOrderId :many
+SELECT id, order_id, product_id, quantity, price_cents FROM order_items WHERE order_id = $1
+`
+
+func (q *Queries) GetOrderItemsByOrderId(ctx context.Context, orderID int64) ([]OrderItem, error) {
+	rows, err := q.db.Query(ctx, getOrderItemsByOrderId, orderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []OrderItem
+	for rows.Next() {
+		var i OrderItem
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrderID,
+			&i.ProductID,
+			&i.Quantity,
+			&i.PriceCents,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getProductByID = `-- name: GetProductByID :one
 SELECT id, name, description, price_in_cents, quantity, created_at FROM products WHERE id = $1
 `

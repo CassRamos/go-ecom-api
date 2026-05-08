@@ -31,6 +31,7 @@ func (app *application) mount() http.Handler {
 	productService := products.NewService(repository.New(app.db))
 	productHandler := products.NewHandler(productService)
 	r.Get("/products", productHandler.ListProducts)
+	r.Get("/products/{id}", productHandler.GetProductById)
 	r.Post("/products", productHandler.CreateProduct)
 	r.Put("/products/{id}", productHandler.UpdateProduct)
 	r.Delete("/products/{id}", productHandler.DeleteProduct)
@@ -38,6 +39,7 @@ func (app *application) mount() http.Handler {
 	orderService := orders.NewService(repository.New(app.db), app.db)
 	orderHandler := orders.NewHandler(orderService)
 	r.Post("/orders", orderHandler.PlaceOrder)
+	r.Get("/orders/{id}", orderHandler.GetOrderByID)
 
 	return r
 }

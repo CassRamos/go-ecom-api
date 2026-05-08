@@ -21,6 +21,12 @@ UPDATE products
 SET quantity = quantity - $2
 WHERE id = $1;
 
+-- name: GetOrderById :one
+SELECT * FROM orders WHERE id = $1;
+
+-- name: GetOrderItemsByOrderId :many
+SELECT * FROM order_items WHERE order_id = $1;
+
 -- name: CreateOrder :one
 INSERT INTO orders (customer_id) 
 VALUES ($1) RETURNING *;

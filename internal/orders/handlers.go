@@ -3,8 +3,10 @@ package orders
 import (
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/CassRamos/go-ecom-api.git/internal/json"
+	"github.com/go-chi/chi"
 )
 
 type handler struct {
@@ -40,4 +42,23 @@ func (h *handler) PlaceOrder(w http.ResponseWriter, r *http.Request) {
 	}
 	json.Write(w, http.StatusCreated, createdOrder)
 
+}
+
+func (h *handler) GetOrderByID(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid order id", http.StatusBadRequest)
+		return
+	}
+
+	orderResponse, err := h.service.GetOrderByID(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.Write(w, http.StatusOK, orderResponse)
 }

@@ -41,7 +41,8 @@ func (s *svc) PlaceOrder(ctx context.Context, tempOrder createOrderParams) (repo
 	}
 	defer tx.Rollback(ctx)
 
-	qtx := s.repo.WithTx(tx)
+	// Create a new query object bound to the transaction, bypassing the interface limitation
+	qtx := repository.New(tx)
 
 	order, err := qtx.CreateOrder(ctx, tempOrder.CustomerID)
 	if err != nil {
@@ -80,4 +81,21 @@ func (s *svc) PlaceOrder(ctx context.Context, tempOrder createOrderParams) (repo
 	tx.Commit(ctx)
 
 	return order, nil
+}
+
+func (s *svc) GetOrderByID(ctx context.Context, id int64) (OrderResponse, error) {
+	order, err := s.repo.GetOrderById(ctx, id)
+	if err != nil {
+		return OrderResponse{}, err
+	}
+
+	items, err := s.repo.GetOrderItemsByOrderId(ctx, id)
+	if err != nil {
+		return OrderResponse{}, err
+	}
+
+	return OrderResponse{
+		Order: order,
+		Items: items,
+	}, nil
 }

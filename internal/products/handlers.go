@@ -1,6 +1,7 @@
 package products
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -31,6 +32,30 @@ func (h *handler) ListProducts(w http.ResponseWriter, r *http.Request) {
 	json.Write(w, http.StatusOK, products)
 }
 
+func (h *handler) GetProductById(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid product id format", http.StatusBadRequest)
+		return
+	}
+
+	product, err := h.service.GetProductByID(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+
+		if errors.Is(err, ErrProductNotFound) {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		http.Error(w, "failed to fetch product", http.StatusInternalServerError)
+		return
+	}
+
+	json.Write(w, http.StatusOK, product)
+}
+
 func (h *handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	var params repository.CreateProductParams
 
@@ -54,7 +79,7 @@ func (h *handler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		http.Error(w, "invalid product id", http.StatusBadRequest)
+		http.Error(w, "invalid product id format", http.StatusBadRequest)
 		return
 	}
 
