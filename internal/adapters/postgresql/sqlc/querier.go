@@ -14,6 +14,7 @@ type Querier interface {
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	DecrementProductQuantity(ctx context.Context, arg DecrementProductQuantityParams) error
 	DeleteProduct(ctx context.Context, id int64) error
+	FilterProducts(ctx context.Context, arg FilterProductsParams) ([]Product, error)
 	GetOrderById(ctx context.Context, id int64) (Order, error)
 	GetOrderItemsByOrderId(ctx context.Context, orderID int64) ([]OrderItem, error)
 	GetProductByID(ctx context.Context, id int64) (Product, error)

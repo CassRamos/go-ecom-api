@@ -109,6 +109,57 @@ func (q *Queries) DeleteProduct(ctx context.Context, id int64) error {
 	return err
 }
 
+const filterProducts = `-- name: FilterProducts :many
+SELECT id, name, description, price_in_cents, quantity, created_at FROM products
+WHERE
+    ($1::text IS NULL OR name ILIKE '%' || $1::text || '%') AND
+    ($2::integer IS NULL OR price_in_cents >= $2::integer) AND
+    ($3::integer IS NULL OR price_in_cents <= $3::integer) AND
+    ($4::integer IS NULL OR quantity >= $4::integer) AND
+    ($5::integer IS NULL OR quantity <= $5::integer)
+`
+
+type FilterProductsParams struct {
+	Name        pgtype.Text `json:"name"`
+	MinPrice    pgtype.Int4 `json:"min_price"`
+	MaxPrice    pgtype.Int4 `json:"max_price"`
+	MinQuantity pgtype.Int4 `json:"min_quantity"`
+	MaxQuantity pgtype.Int4 `json:"max_quantity"`
+}
+
+func (q *Queries) FilterProducts(ctx context.Context, arg FilterProductsParams) ([]Product, error) {
+	rows, err := q.db.Query(ctx, filterProducts,
+		arg.Name,
+		arg.MinPrice,
+		arg.MaxPrice,
+		arg.MinQuantity,
+		arg.MaxQuantity,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Product
+	for rows.Next() {
+		var i Product
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.PriceInCents,
+			&i.Quantity,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getOrderById = `-- name: GetOrderById :one
 SELECT id, customer_id, created_at FROM orders WHERE id = $1
 `

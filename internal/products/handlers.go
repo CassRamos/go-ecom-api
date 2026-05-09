@@ -9,6 +9,7 @@ import (
 	repository "github.com/CassRamos/go-ecom-api.git/internal/adapters/postgresql/sqlc"
 	"github.com/CassRamos/go-ecom-api.git/internal/json"
 	"github.com/go-chi/chi"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type handler struct {
@@ -54,6 +55,36 @@ func (h *handler) GetProductById(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.Write(w, http.StatusOK, product)
+}
+
+func (h *handler) FilterProducts(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	nameParam := query.Get("name")
+
+	var params repository.FilterProductsParams
+
+	if nameParam != "" {
+		params.Name = pgtype.Text{String: nameParam, Valid: true}
+	}
+
+	params.MinPrice = parseIntToPgType(query.Get("min_price"))
+	params.MaxPrice = parseIntToPgType(query.Get("max_price"))
+	params.MinQuantity = parseIntToPgType(query.Get("min_quantity"))
+	params.MaxQuantity = parseIntToPgType(query.Get("max_quantity"))
+
+	products, err := h.service.FilterProducts(r.Context(), params)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "failed to filter products", http.StatusInternalServerError)
+		return
+	}
+
+	if products == nil {
+		products = []repository.Product{}
+	}
+
+	json.Write(w, http.StatusOK, products)
+
 }
 
 func (h *handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
@@ -119,4 +150,17 @@ func (h *handler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusNoContent)
 
+}
+
+func parseIntToPgType(s string) pgtype.Int4 {
+	if s == "" {
+		return pgtype.Int4{Valid: false}
+	}
+
+	parsed, err := strconv.ParseInt(s, 10, 32)
+	if err != nil {
+		return pgtype.Int4{Valid: false}
+	}
+
+	return pgtype.Int4{Int32: int32(parsed), Valid: true}
 }

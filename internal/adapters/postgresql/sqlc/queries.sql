@@ -4,6 +4,15 @@ SELECT * FROM products;
 -- name: GetProductByID :one
 SELECT * FROM products WHERE id = $1;
 
+-- name: FilterProducts :many
+SELECT * FROM products
+WHERE
+    (sqlc.narg('name')::text IS NULL OR name ILIKE '%' || sqlc.narg('name')::text || '%') AND
+    (sqlc.narg('min_price')::integer IS NULL OR price_in_cents >= sqlc.narg('min_price')::integer) AND
+    (sqlc.narg('max_price')::integer IS NULL OR price_in_cents <= sqlc.narg('max_price')::integer) AND
+    (sqlc.narg('min_quantity')::integer IS NULL OR quantity >= sqlc.narg('min_quantity')::integer) AND
+    (sqlc.narg('max_quantity')::integer IS NULL OR quantity <= sqlc.narg('max_quantity')::integer);
+
 -- name: CreateProduct :one
 INSERT INTO products(name, description, price_in_cents, quantity) 
 VALUES ($1, $2, $3, $4) RETURNING *;
