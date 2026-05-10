@@ -83,6 +83,55 @@ func (s *svc) PlaceOrder(ctx context.Context, tempOrder createOrderParams) (repo
 	return order, nil
 }
 
+func (s *svc) CancelOrder(ctx context.Context, orderId int64) error {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+
+	defer tx.Rollback(ctx)
+
+	qtx := repository.New(tx)
+
+	order, err := qtx.GetOrderById(ctx, orderId)
+	if err != nil {
+		return fmt.Errorf("Order not found: %w", err)
+	}
+
+	if order.Status == "CANCELED" {
+		return fmt.Errorf("order is already canceled")
+	}
+
+	err = qtx.UpdateOrderStatus(ctx, repository.UpdateOrderStatusParams{
+		ID:     order.ID,
+		Status: "CANCELED",
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update order status: %w", err)
+	}
+
+	items, err := qtx.GetOrderItemsByOrderId(ctx, orderId)
+	if err != nil {
+		return fmt.Errorf("failed to get order items: %w", err)
+	}
+
+	for _, item := range items {
+		err = qtx.IncrementProductQuantity(ctx, repository.IncrementProductQuantityParams{
+			ID:       item.ProductID,
+			Quantity: item.Quantity,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to restore stock for product %d: %w", item.ProductID, err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
 func (s *svc) GetOrderByID(ctx context.Context, id int64) (OrderResponse, error) {
 	order, err := s.repo.GetOrderById(ctx, id)
 	if err != nil {

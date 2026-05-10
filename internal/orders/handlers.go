@@ -44,6 +44,32 @@ func (h *handler) PlaceOrder(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (h *handler) CancelOrder(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+
+	if err != nil {
+		http.Error(w, "invalid order id format", http.StatusBadRequest)
+		return
+	}
+
+	err = h.service.CancelOrder(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+
+		if err.Error() == "order is already cancelled" {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		http.Error(w, "failed to cancel order", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"message": "order canceled successfully"}`))
+}
+
 func (h *handler) GetOrderByID(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 

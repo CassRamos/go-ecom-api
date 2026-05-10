@@ -8,18 +8,19 @@ SELECT * FROM products WHERE id = $1;
 SELECT * FROM products
 WHERE
     (sqlc.narg('name')::text IS NULL OR name ILIKE '%' || sqlc.narg('name')::text || '%') AND
+    (sqlc.narg('category')::text IS NULL OR category = sqlc.narg('category')::text) AND
     (sqlc.narg('min_price')::integer IS NULL OR price_in_cents >= sqlc.narg('min_price')::integer) AND
     (sqlc.narg('max_price')::integer IS NULL OR price_in_cents <= sqlc.narg('max_price')::integer) AND
     (sqlc.narg('min_quantity')::integer IS NULL OR quantity >= sqlc.narg('min_quantity')::integer) AND
     (sqlc.narg('max_quantity')::integer IS NULL OR quantity <= sqlc.narg('max_quantity')::integer);
 
 -- name: CreateProduct :one
-INSERT INTO products(name, description, price_in_cents, quantity) 
+INSERT INTO products(name, category, price_in_cents, quantity) 
 VALUES ($1, $2, $3, $4) RETURNING *;
 
 -- name: UpdateProduct :one
 UPDATE products
-SET name = $2, description = $3, price_in_cents = $4, quantity = $5
+SET name = $2, category = $3, price_in_cents = $4, quantity = $5
 WHERE id = $1 RETURNING *;
 
 -- name: DeleteProduct :exec
@@ -28,6 +29,11 @@ DELETE FROM products WHERE id = $1;
 -- name: DecrementProductQuantity :exec
 UPDATE products
 SET quantity = quantity - $2
+WHERE id = $1;
+
+-- name: IncrementProductQuantity :exec
+UPDATE products
+SET quantity = quantity + $2
 WHERE id = $1;
 
 -- name: GetOrderById :one
@@ -43,3 +49,7 @@ VALUES ($1) RETURNING *;
 -- name: CreateOrderItem :one
 INSERT INTO order_items (order_id, product_id, quantity, price_cents)
 VALUES ($1, $2, $3, $4) RETURNING *;
+
+-- name: UpdateOrderStatus :exec
+UPDATE orders SET status = $2 WHERE id = $1;
+

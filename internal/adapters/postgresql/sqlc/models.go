@@ -12,6 +12,7 @@ type Order struct {
 	ID         int64              `json:"id"`
 	CustomerID int64              `json:"customer_id"`
 	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	Status     string             `json:"status"`
 }
 
 type OrderItem struct {
@@ -25,8 +26,8 @@ type OrderItem struct {
 type Product struct {
 	ID           int64              `json:"id"`
 	Name         string             `json:"name"`
-	Description  pgtype.Text        `json:"description"`
 	PriceInCents int32              `json:"price_in_cents"`
 	Quantity     int32              `json:"quantity"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	Category     string             `json:"category"`
 }
