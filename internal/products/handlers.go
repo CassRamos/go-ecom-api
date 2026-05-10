@@ -59,12 +59,18 @@ func (h *handler) GetProductById(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) FilterProducts(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
+
 	nameParam := query.Get("name")
+	categoryParam := query.Get("category")
 
 	var params repository.FilterProductsParams
 
 	if nameParam != "" {
 		params.Name = pgtype.Text{String: nameParam, Valid: true}
+	}
+
+	if categoryParam != "" {
+		params.Category = pgtype.Text{String: categoryParam, Valid: true}
 	}
 
 	params.MinPrice = parseIntToPgType(query.Get("min_price"))
